@@ -1,0 +1,26 @@
+{
+  "name": "@liquid-labs/terror",
+  "version": "1.0.0-alpha.0",
+  "description": "Typed errors for go following and compatible with HTTP response codes.",
+  "scripts": {
+    "build": "catalyst-scripts build",
+    "pretest": "catalyst-scripts pretest",
+    "test": "catalyst-scripts test",
+    "lint": "catalyst-scripts lint",
+    "lint-fix": "catalyst-scripts lint-fix",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Liquid-Labs/terror.git"
+  },
+  "author": "Zane Rockenbaugh <zane@liquid-labs.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Liquid-Labs/terror/issues"
+  },
+  "homepage": "https://github.com/Liquid-Labs/terror#readme",
+  "devDependencies": {
+    "@liquid-labs/catalyst-scripts": "^1.0.0-alpha.22"
+  }
+}
