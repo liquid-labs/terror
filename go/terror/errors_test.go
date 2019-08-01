@@ -23,6 +23,7 @@ func TestTerrors(t *testing.T) {
   funcs := []testStruct {
     testStruct{func (msg string, cause error) terror.Terror { return terror.BadRequestError(msg, cause) }, 400},
     testStruct{func (msg string, cause error) terror.Terror { return terror.AuthorizationError(msg, cause) }, 401},
+    testStruct{func (msg string, cause error) terror.Terror { return terror.ForbiddenError(msg, cause) }, 403},
     testStruct{func (msg string, cause error) terror.Terror { return terror.NotFoundError(msg, cause) }, 404},
     testStruct{func (msg string, cause error) terror.Terror { return terror.UnprocessableEntityError(msg, cause) }, 422},
     testStruct{func (msg string, cause error) terror.Terror { return terror.ServerError(msg, cause) }, 500},
