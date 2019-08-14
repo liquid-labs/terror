@@ -2,9 +2,18 @@ package terror
 
 import (
   "fmt"
+  "log"
   "net/http"
+  "os"
   "runtime"
 )
+
+const debugKey string = `DEBUG_TERROR`
+var debug string = os.Getenv(debugKey)
+
+func EchoErrorLog() {
+  debug = `true`
+}
 
 // Terror interface supporting immutable results.
 type Terror interface {
@@ -51,7 +60,11 @@ func annotateError(cause error) string {
   // '1' is the 'annotateError' call itself
   // '2' is the error creation point
   pc, file, line, _ := runtime.Caller(2)
-  return fmt.Sprintf("(%s[%s:%d]) %s", runtime.FuncForPC(pc).Name(), file, line, cause)
+  causeLog := fmt.Sprintf("(%s[%s:%d]) %s", runtime.FuncForPC(pc).Name(), file, line, cause)
+  if debug != `` {
+    log.Println(causeLog)
+  }
+  return causeLog
 }
 
 // BadRequestError indicates a malformed request. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1)
