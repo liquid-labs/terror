@@ -53,41 +53,56 @@ func (e errorData) CauseError() error {
 }
 
 // annotateError add function, file, and line number information to errors.
-func annotateError(cause error) string {
-  if cause == nil {
-    return ``
+func annotateError(cause interface{}) string {
+  var causeS string
+  switch cause.(type) {
+  case string:
+    causeS = cause.(string)
+  case error:
+    causeS = (cause.(error)).Error()
   }
-  // '1' is the 'annotateError' call itself
-  // '2' is the error creation point
+  // '0' is 'annotateError'
+  // '1' is the Terror creator function
+  // '2' is the user error creation point
   pc, file, line, _ := runtime.Caller(2)
-  causeLog := fmt.Sprintf("(%s[%s:%d]) %s", runtime.FuncForPC(pc).Name(), file, line, cause)
+  causeLog := fmt.Sprintf("(%s[%s:%d]) %s", runtime.FuncForPC(pc).Name(), file, line, causeS)
   if debug != `` {
     log.Println(causeLog)
   }
   return causeLog
 }
 
-// BadRequestError indicates a malformed request. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1)
-func BadRequestError(message string, cause error) errorData {
-  return errorData{message, http.StatusBadRequest, annotateError(cause), cause}
+// BadRequestError (400) indicates a malformed request. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1)
+func BadRequestError(message string) Terror {
+  return errorData{message, http.StatusBadRequest, annotateError(`Bad request.`), nil}
 }
-// AuthorizationError indicates a properly formed request lacking proper authorization. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2)
-func AuthorizationError(message string, cause error) errorData {
-  return errorData{message, http.StatusUnauthorized, annotateError(cause), cause}
+
+// UnautthenticatedError (401) indicates a properly formed request that lacks required authentication. Note that the HTTP standards call this "Unauthorized", rather than "unauthenticated". We prefer the latter to maintain a clear distinction between authentication and authorization. Use `ForbiddenError` for unauthorized requests. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2)
+func UnauthenticatedError(message string) Terror {
+  return errorData{message, http.StatusUnauthorized, annotateError(`Lacks required authentication.`), nil}
 }
-// ForbiddenError indicates a properly formed request which is forbidden regardless of authorization. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.4)
-func ForbiddenError(message string, cause error) errorData {
-  return errorData{message, http.StatusForbidden, annotateError(cause), cause}
+
+// ForbiddenError (403) indicates a properly formed request by an authenticated with is none-the-less unauthorized. While `UnauthorizedError` would be the better name, this would conflict with the HTTP standards use of the term, so in this case we keep "forbidden" to avoid confusion. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.4)
+func ForbiddenError(message string) Terror {
+  return errorData{message, http.StatusForbidden, annotateError(`Unauthorized (forbidden) request.`), nil}
 }
-// NotFoundError indicates a properly formed request for something which is not there. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.5)
-func NotFoundError(message string, cause error) errorData {
-  return errorData{message, http.StatusNotFound, annotateError(cause), cause}
+
+// NotFoundError (404) indicates a properly formed request for something which is not there. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.5)
+func NotFoundError(message string) Terror {
+  return errorData{message, http.StatusNotFound, annotateError(`Resource not found.`), nil}
 }
-// UnprocessableEntityError indicates a properly formed request with semantically invalid content. See [RFC4918](https://tools.ietf.org/html/rfc4918#page-78)
-func UnprocessableEntityError(message string, cause error) errorData {
-  return errorData{message, http.StatusUnprocessableEntity, annotateError(cause), cause}
+
+// MethodNotAllowedError (405) indicates a properly formed request that is understood by the server, but whose method is not allowed or not supported for the target resource. This is distinct from where a method is possible, but not allowed under current circumstances, in which case `UnauthorizedError`, `ForbiddenError`, or others may be appropriate. See [RFC7231](https://tools.ietf.org/html/rfc7231#section-6.5.5)
+func MethodNotAllowedError(message string) Terror {
+  return errorData{message, http.StatusMethodNotAllowed, annotateError(`Method not allowed.`), nil}
 }
-// ServerError indicates an unexpected server side error. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.5.1)
-func ServerError(message string, cause error) errorData  {
+
+// UnprocessableEntityError (422) indicates a properly formed request with semantically invalid content. See [RFC4918](https://tools.ietf.org/html/rfc4918#page-78)
+func UnprocessableEntityError(message string) Terror {
+  return errorData{message, http.StatusUnprocessableEntity, annotateError(`Unprocessable entity (bad user data).`), nil}
+}
+
+// ServerError (500) indicates an unexpected server side error. See [RFC2616](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.5.1)
+func ServerError(message string, cause error) Terror  {
   return errorData{message, http.StatusInternalServerError, annotateError(cause), cause}
 }

@@ -7,6 +7,8 @@ import (
 
   "github.com/stretchr/testify/assert"
 
+  "github.com/Liquid-Labs/strkit/go/strkit"
+
   // the package we're testing
   "github.com/Liquid-Labs/terror/go/terror"
 )
@@ -14,31 +16,53 @@ import (
 const testMessage = `It's all foobar!`
 var causeError error = errors.New(`I'm the real cause.`)
 
-type testStruct struct {
+type userErrTestStruct struct {
+  createFunc func(string) terror.Terror
+  code int
+}
+
+type backendErrTestStruct struct {
   createFunc func(string, error) terror.Terror
   code int
 }
 
+func checkError(t *testing.T, testMessage string, code int, lno int, terror terror.Terror) {
+  // test the user message
+  assert.Equal(t, testMessage, terror.Error(), `Terror does not reflect the user message.`)
+  // test report on underlying error
+  assert.Contains(t, terror.Cause(), `/terror_test.TestTerrors`, `Annotated cause does not identify source function.`)
+  assert.Contains(t, terror.Cause(), `errors_test.go`, `Annotated cause does not identify source file.`)
+  assert.Contains(t, terror.Cause(), fmt.Sprintf(`:%d]`, lno), `Annotated cause does not identify source line number.`)
+  // test the codes
+  assert.Equal(t, code, terror.Code())
+}
+
 func TestTerrors(t *testing.T) {
-  funcs := []testStruct {
-    testStruct{func (msg string, cause error) terror.Terror { return terror.BadRequestError(msg, cause) }, 400},
-    testStruct{func (msg string, cause error) terror.Terror { return terror.AuthorizationError(msg, cause) }, 401},
-    testStruct{func (msg string, cause error) terror.Terror { return terror.ForbiddenError(msg, cause) }, 403},
-    testStruct{func (msg string, cause error) terror.Terror { return terror.NotFoundError(msg, cause) }, 404},
-    testStruct{func (msg string, cause error) terror.Terror { return terror.UnprocessableEntityError(msg, cause) }, 422},
-    testStruct{func (msg string, cause error) terror.Terror { return terror.ServerError(msg, cause) }, 500},
+  userTerrors := []userErrTestStruct {
+    userErrTestStruct{terror.BadRequestError, 400},
+    userErrTestStruct{terror.UnauthenticatedError, 401},
+    userErrTestStruct{terror.ForbiddenError, 403},
+    userErrTestStruct{terror.NotFoundError, 404},
+    userErrTestStruct{terror.UnprocessableEntityError, 422},
   }
 
-  for i, tStruct := range funcs {
-    terror := tStruct.createFunc(testMessage, causeError)
+  backendTerrors := []backendErrTestStruct {
+    backendErrTestStruct{terror.ServerError, 500},
+  }
 
-    // test the user message
-    assert.Equal(t, testMessage, terror.Error(), `Terror does not reflect the user message.`)
-    // test report on underlying error
-    assert.Contains(t, terror.Cause(), fmt.Sprintf(`TestTerrors.func%d`, i + 1), `Annotated cause does not identify source function.`)
-    assert.Contains(t, terror.Cause(), `errors_test.go`, `Annotated cause does not identify source file.`)
-    assert.Contains(t, terror.Cause(), fmt.Sprintf(`:%d]`, 24 + i), `Annotated cause does not identify source line number.`)
-    // test the codes
-    assert.Equal(t, tStruct.code, terror.Code())
+  for _, tStruct := range userTerrors {
+    funcName := strkit.FuncNameOnly(tStruct.createFunc)
+    t.Run(funcName, func (t *testing.T) {
+      terror := tStruct.createFunc(testMessage)
+      checkError(t, testMessage, tStruct.code, 56/* line no where error created */, terror)
+    })
+  }
+
+  for _, tStruct := range backendTerrors {
+    funcName := strkit.FuncNameOnly(tStruct.createFunc)
+    t.Run(funcName, func (t *testing.T) {
+      terror := tStruct.createFunc(testMessage, causeError)
+      checkError(t, testMessage, tStruct.code, 64/* line no where error created */, terror)
+    })
   }
 }
