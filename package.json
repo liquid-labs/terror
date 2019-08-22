@@ -1,6 +1,6 @@
 {
   "name": "@liquid-labs/terror",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Typed errors for go following and compatible with HTTP response codes.",
   "scripts": {
     "build": "catalyst-scripts build",
